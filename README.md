@@ -11,7 +11,12 @@ Why the tool does that :
 
 ## Usage 
 ```
-py compare_domain_hashes.py ntds1 ntds2 [-da domain_admin_users_list]
+py compare_domain_hashes.py ntds1 [-c/--compare ntds2] [-da domain_admin_users_list]
+
+py compare_domain_hashes.py ntds1                        # password reuse in a domain
+py compare_domain_hashes.py ntds1 -c ntds2               # password reuse in both domains + common hashes
+py compare_domain_hashes.py ntds1 -c ntds2 -da da_list   # above + domain admins
+
 ```
 
 

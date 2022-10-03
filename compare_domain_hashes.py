@@ -33,12 +33,11 @@ def printFAIL(str):
 # args
 parser = argparse.ArgumentParser(description='Stats on similar NT hashes between domains')
 
-parser.add_argument('ntds1', type=str, help='NTDS domain 1 (username:id:lm:nt:::)')
-parser.add_argument('ntds2', type=str, help='NTDS domain 2')
+parser.add_argument('ntds', type=str, help='NTDS domain 1 (username:id:lm:nt:::)')
+parser.add_argument('--compare', '-c', type=str, help='NTDS domain 2')
 parser.add_argument('-da', type=str, help='Domain Admin list')
 args = parser.parse_args()
 args = vars(args)
-
 
 glob = {}
 
@@ -47,7 +46,7 @@ a = 0
 b = 0
 
 # Parse first file
-with open(args["ntds1"],'r') as ntds:
+with open(args["ntds"],'r') as ntds:
     name1 = ntds.name
     for l in ntds:
         user = l.split(':')[0]
@@ -61,27 +60,7 @@ with open(args["ntds1"],'r') as ntds:
             glob[h][2].append(user)
         except KeyError:
             glob[h] = [1,0,[user]]
-
-# Parse second file
-with open(args["ntds2"],'r') as ntds:
-    name2 = ntds.name
-    for l in ntds:
-        user = l.split(':')[0]
-        if user.startswith('[*]') or user.startswith('Impacket') or user == '\n':
-            continue
-
-        b+=1
-        h = l.split(':')[3]
-        try:
-            glob[h][1] += 1
-            glob[h][2].append(user)
-        except KeyError:
-            glob[h] = [0,1,[user]]
-
-
 nt1 = [(k,v) for k, v in sorted(glob.items(), key=lambda item: item[1][0])]
-nt2 = [(k,v) for k, v in sorted(glob.items(), key=lambda item: item[1][1])]
-
 
 # Top Hashes
 printOK(f'{a} hashes in {name1}')
@@ -92,11 +71,32 @@ for i in nt1[::-1]:
         printINFO(f'{i[0]} found {i[1][0]} times')
 
 
-printOK(f'{b} hashes in {name2}')
-printHEADER(f"Top hashes from {name2} (> {threshold} times)")
-for i in nt2[::-1]:
-    if i[1][1] >= threshold:
-        printINFO(f'{i[0]} found {i[1][1]} times')
+# Parse second file
+if args["compare"] is not None:
+    with open(args["compare"],'r') as ntds:
+        name2 = ntds.name
+        for l in ntds:
+            user = l.split(':')[0]
+            if user.startswith('[*]') or user.startswith('Impacket') or user == '\n':
+                continue
+
+            b+=1
+            h = l.split(':')[3]
+            try:
+                glob[h][1] += 1
+                glob[h][2].append(user)
+            except KeyError:
+                glob[h] = [0,1,[user]]
+    nt2 = [(k,v) for k, v in sorted(glob.items(), key=lambda item: item[1][1])]
+
+    printOK(f'{b} hashes in {name2}')
+    printHEADER(f"Top hashes from {name2} (> {threshold} times)")
+    for i in nt2[::-1]:
+        if i[1][1] >= threshold:
+            printINFO(f'{i[0]} found {i[1][1]} times')
+
+if args["compare"] is None:
+    exit(0)
 
 # Common hashes
 printHEADER("Finding common hashes")
