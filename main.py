@@ -1,38 +1,11 @@
 #!/usr/bin/python3
 import argparse
+from ntdshs_utils.utils import *
+from ntdshs_utils.parser import *
 
 
-# repetition threshold
-threshold = 5 
-
-
-# pretty colors
-class bcolors:
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKCYAN = '\033[96m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
-
-def printHEADER(str):
-    print(f'{bcolors.HEADER}## {str}{bcolors.ENDC}')
-
-def printOK(str):
-    print(f'{bcolors.OKGREEN}[+] {str}{bcolors.ENDC}')
-
-def printINFO(str):
-    print(f'{bcolors.WARNING}{str}{bcolors.ENDC}')
-
-def printFAIL(str):
-    print(f'{bcolors.FAIL}[!] {str}{bcolors.ENDC}')
-
-# args
+# Args
 parser = argparse.ArgumentParser(description='Stats on similar NT hashes between domains')
-
 parser.add_argument('ntds', type=str, help='NTDS domain 1 (username:id:lm:nt:::)')
 parser.add_argument('--compare', '-c', type=str, help='NTDS domain 2')
 parser.add_argument('-da', type=str, help='Domain Admin list')
@@ -41,59 +14,21 @@ args = vars(args)
 
 glob = {}
 
-# number of accounts
-a = 0
-b = 0
+parse = Parser(args["ntds"],glob,0)
+parse.parse()
+parse.topHashes()
+a = parse.nb_hashes
 
-# Parse first file
-with open(args["ntds"],'r') as ntds:
-    name1 = ntds.name
-    for l in ntds:
-        user = l.split(':')[0]
-        if user.startswith('[*]') or user.startswith('Impacket') or user == '\n':
-            continue
-
-        a+=1
-        h = l.split(':')[3]
-        try:
-            glob[h][0] +=1
-            glob[h][2].append(user)
-        except KeyError:
-            glob[h] = [1,0,[user]]
-nt1 = [(k,v) for k, v in sorted(glob.items(), key=lambda item: item[1][0])]
-
-# Top Hashes
-printOK(f'{a} hashes in {name1}')
-
-printHEADER(f"Top hashes from {name1} (> {threshold} times)")
-for i in nt1[::-1]:
-    if i[1][0] >= threshold:
-        printINFO(f'{i[0]} found {i[1][0]} times')
-
-
-# Parse second file
 if args["compare"] is not None:
-    with open(args["compare"],'r') as ntds:
-        name2 = ntds.name
-        for l in ntds:
-            user = l.split(':')[0]
-            if user.startswith('[*]') or user.startswith('Impacket') or user == '\n':
-                continue
+    parse2 = Parser(args["compare"],glob,1)
+    parse2.parse()
+    parse2.topHashes()
+    b = parse2.nb_hashes
 
-            b+=1
-            h = l.split(':')[3]
-            try:
-                glob[h][1] += 1
-                glob[h][2].append(user)
-            except KeyError:
-                glob[h] = [0,1,[user]]
-    nt2 = [(k,v) for k, v in sorted(glob.items(), key=lambda item: item[1][1])]
 
-    printOK(f'{b} hashes in {name2}')
-    printHEADER(f"Top hashes from {name2} (> {threshold} times)")
-    for i in nt2[::-1]:
-        if i[1][1] >= threshold:
-            printINFO(f'{i[0]} found {i[1][1]} times')
+name1 = args["ntds"]
+name2 = args["compare"]
+
 
 if args["compare"] is None:
     exit(0)
