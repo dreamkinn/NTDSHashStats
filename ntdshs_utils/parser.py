@@ -10,7 +10,7 @@ class Parser:
         self.index = index
         self.hash_index = 0
         self.user_index = 0
-        self.threshold = 1 # repetition threshold
+        self.threshold = 2 # repetition threshold
 
     
     def parse(self):
